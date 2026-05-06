@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lab Lens Inventory</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Mobile Inventory</p>
+          <h1>Lab Lens</h1>
+        </div>
+        <button class="icon-button" id="exportCsvBtn" type="button" aria-label="Export CSV report" title="Export CSV">
+          <span class="icon download-icon" aria-hidden="true"></span>
+        </button>
+      </header>
+
+      <section class="summary-grid" aria-label="Inventory summary">
+        <article class="summary-tile">
+          <span>Total Lots</span>
+          <strong id="totalLots">0</strong>
+        </article>
+        <article class="summary-tile warning">
+          <span>Needs Action</span>
+          <strong id="warningLots">0</strong>
+        </article>
+        <article class="summary-tile danger">
+          <span>Critical</span>
+          <strong id="criticalLots">0</strong>
+        </article>
+      </section>
+
+      <nav class="job-tabs" aria-label="Inventory jobs">
+        <button class="tab active" type="button" data-view="receiving">
+          <span class="icon receive-icon" aria-hidden="true"></span>
+          <span>Receiving</span>
+        </button>
+        <button class="tab" type="button" data-view="discarding">
+          <span class="icon discard-icon" aria-hidden="true"></span>
+          <span>Discarding</span>
+        </button>
+        <button class="tab" type="button" data-view="verifying">
+          <span class="icon verify-icon" aria-hidden="true"></span>
+          <span>Verify</span>
+        </button>
+        <button class="tab" type="button" data-view="ordering">
+          <span class="icon order-icon" aria-hidden="true"></span>
+          <span>Ordering</span>
+        </button>
+      </nav>
+
+      <section class="job-panel active" id="receiving" aria-labelledby="receivingTitle">
+        <div class="panel-heading">
+          <h2 id="receivingTitle">Receive Supplies</h2>
+          <p>Scan or enter the OTC/material details and add the received quantity to the matching lot.</p>
+        </div>
+        <form id="receiveForm" class="stacked-form">
+          <div class="scan-row">
+            <label>
+              OTC / Barcode Entry
+              <input name="otcCode" inputmode="text" placeholder="MFG|MAT|LOT|YYYY-MM-DD|QTY|TARGET">
+            </label>
+            <button class="secondary-action" id="parseOtcBtn" type="button" aria-label="Fill receiving form from OTC barcode">
+              <span class="icon scan-icon" aria-hidden="true"></span>
+            </button>
+          </div>
+          <div class="photo-capture">
+            <input id="labelPhotoInput" name="labelPhoto" type="file" accept="image/*" capture="environment">
+            <label class="photo-action" for="labelPhotoInput">
+              <span class="icon camera-icon" aria-hidden="true"></span>
+              <span>Take/Upload Photo</span>
+            </label>
+            <button class="secondary-text-action" id="extractLabelBtn" type="button">Extract Label Info</button>
+          </div>
+          <div class="photo-preview" id="photoPreview" hidden>
+            <img id="labelPhotoPreview" alt="Captured supply label preview">
+          </div>
+          <p class="review-note">AI-extracted information must be reviewed before saving.</p>
+          <div class="extraction-status" id="extractionStatus" aria-live="polite" hidden></div>
+          <label>
+            Manufacturer
+            <input name="manufacturer" autocomplete="organization" required>
+          </label>
+          <label>
+            Material Number
+            <input name="materialNumber" inputmode="text" required>
+          </label>
+          <label>
+            Lot Number
+            <input name="lotNumber" inputmode="text" required>
+          </label>
+          <label>
+            Expiration Date
+            <input name="expirationDate" type="date" required>
+          </label>
+          <div class="form-row">
+            <label>
+              Quantity Received
+              <input name="quantity" type="number" inputmode="numeric" min="1" step="1" required>
+            </label>
+            <label>
+              Target Amount
+              <input name="target" type="number" inputmode="numeric" min="0" step="1" placeholder="Optional">
+            </label>
+          </div>
+          <button class="primary-action" type="submit">Save/Receive</button>
+        </form>
+      </section>
+
+      <section class="job-panel" id="discarding" aria-labelledby="discardingTitle">
+        <div class="panel-heading">
+          <h2 id="discardingTitle">Discard Supplies</h2>
+          <p>Remove damaged, used, or expired supplies from the selected lot.</p>
+        </div>
+        <form id="discardForm" class="stacked-form">
+          <label>
+            Inventory Lot
+            <select name="itemKey" required></select>
+          </label>
+          <label>
+            Quantity Discarded
+            <input name="quantity" type="number" inputmode="numeric" min="1" step="1" required>
+          </label>
+          <label>
+            Reason
+            <select name="reason">
+              <option>Used</option>
+              <option>Expired</option>
+              <option>Damaged</option>
+              <option>Count correction</option>
+            </select>
+          </label>
+          <button class="primary-action" type="submit">Subtract Quantity</button>
+        </form>
+      </section>
+
+      <section class="job-panel" id="verifying" aria-labelledby="verifyingTitle">
+        <div class="panel-heading">
+          <h2 id="verifyingTitle">Verify Inventory</h2>
+          <p>Enter the physical count to reconcile the current quantity for a lot.</p>
+        </div>
+        <form id="verifyForm" class="stacked-form">
+          <label>
+            Inventory Lot
+            <select name="itemKey" required></select>
+          </label>
+          <label>
+            Verified Quantity
+            <input name="quantity" type="number" inputmode="numeric" min="0" step="1" required>
+          </label>
+          <button class="primary-action" type="submit">Save Verified Count</button>
+        </form>
+      </section>
+
+      <section class="job-panel" id="ordering" aria-labelledby="orderingTitle">
+        <div class="panel-heading">
+          <h2 id="orderingTitle">Order by Target</h2>
+          <p>Set target levels and review suggested order quantities.</p>
+        </div>
+        <form id="targetForm" class="stacked-form">
+          <label>
+            Inventory Lot
+            <select name="itemKey" required></select>
+          </label>
+          <label>
+            Target Amount
+            <input name="target" type="number" inputmode="numeric" min="0" step="1" required>
+          </label>
+          <button class="primary-action" type="submit">Update Target</button>
+        </form>
+        <div class="order-list" id="orderList" aria-live="polite"></div>
+      </section>
+
+      <section class="inventory-section">
+        <div class="section-heading">
+          <h2>Inventory</h2>
+          <label class="search-box">
+            <span class="icon search-icon" aria-hidden="true"></span>
+            <input id="searchInput" type="search" placeholder="Search inventory">
+          </label>
+        </div>
+        <div class="legend" aria-label="Status legend">
+          <span><i class="dot ok"></i>Ready</span>
+          <span><i class="dot warn"></i>Below target or expires within 30 days</span>
+          <span><i class="dot stop"></i>Zero or expired</span>
+        </div>
+        <div id="inventoryList" class="inventory-list" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <template id="itemTemplate">
+      <article class="inventory-card">
+        <div class="card-main">
+          <div>
+            <h3></h3>
+            <p class="material-line"></p>
+          </div>
+          <strong class="quantity-badge"></strong>
+        </div>
+        <dl class="item-meta">
+          <div>
+            <dt>Lot</dt>
+            <dd class="lot"></dd>
+          </div>
+          <div>
+            <dt>Expires</dt>
+            <dd class="expiration"></dd>
+          </div>
+          <div>
+            <dt>Target</dt>
+            <dd class="target"></dd>
+          </div>
+          <div>
+            <dt>Order</dt>
+            <dd class="order"></dd>
+          </div>
+        </dl>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
